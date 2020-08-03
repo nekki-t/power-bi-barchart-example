@@ -6,8 +6,8 @@
             "kind": "Grouping"
         },
         {
-            "displayName": "Measure Data",
-            "name": "measure",
+            "displayName": "Values",
+            "name": "value",
             "kind": "Measure"
         }
     ],
@@ -26,7 +26,7 @@
                     "select": [
                         {
                             "bind": {
-                                "to": "measure"
+                                "to": "value"
                             }
                         }
                     ]

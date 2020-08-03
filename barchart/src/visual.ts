@@ -1,54 +1,70 @@
-/*
- *  Power BI Visual CLI
- *
- *  Copyright (c) Microsoft Corporation
- *  All rights reserved.
- *  MIT License
- *
- *  Permission is hereby granted, free of charge, to any person obtaining a copy
- *  of this software and associated documentation files (the ""Software""), to deal
- *  in the Software without restriction, including without limitation the rights
- *  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- *  copies of the Software, and to permit persons to whom the Software is
- *  furnished to do so, subject to the following conditions:
- *
- *  The above copyright notice and this permission notice shall be included in
- *  all copies or substantial portions of the Software.
- *
- *  THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- *  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- *  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- *  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- *  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- *  THE SOFTWARE.
- */
+
 "use strict";
 
 import "core-js/stable";
-import { select } from 'd3';
-import powerbi from "powerbi-visuals-api";
 import "./../style/visual.less";
-import { VisualSettings } from "./settings";
+import powerbi from "powerbi-visuals-api";
 import VisualConstructorOptions = powerbi.extensibility.visual.VisualConstructorOptions;
 import VisualUpdateOptions = powerbi.extensibility.visual.VisualUpdateOptions;
 import IVisual = powerbi.extensibility.visual.IVisual;
 
+import { select, Selection, scaleBand, scaleLinear, max } from 'd3';
+
+const DUMMY_DATA = [
+    {
+        value: 10,
+        category: 'China'
+    },
+    {
+        value: 8,
+        category: 'USA'
+    },
+    {
+        value: 11,
+        category: 'India'
+    },
+    {
+        value: 5,
+        category: 'Germany'
+    },
+];
+
 export class Visual implements IVisual {
-  private target: HTMLElement;
-  private updateCount: number;
-  private settings: VisualSettings;
-  private textNode: Text;
+    private svg: Selection<SVGElement, any, any, any>;
+    private barContainer: Selection<SVGElement, any, any, any>;
 
-  constructor(options: VisualConstructorOptions) {
-      select(options.element)
-      .append('svg')
-      .append('rect')
-      .attr('width', 50)
-      .attr('height', 50)
-      .attr('fill', 'red');
-      
-  }
+    constructor(options: VisualConstructorOptions) {
+        this.svg = select(options.element)
+            .append('svg');
 
-  public update(options: VisualUpdateOptions) {}
+        this.barContainer = this.svg.append('g');
+    }
+
+    public update(options: VisualUpdateOptions) {
+        const width = options.viewport.width;
+        const height = options.viewport.height;
+
+        const x = scaleBand()
+            .domain(DUMMY_DATA.map(dataPoint => dataPoint.category))
+            .rangeRound([0, width])
+            .padding(0.1);
+
+        const y = scaleLinear()
+            .domain([0, max(DUMMY_DATA, dataPoint => dataPoint.value) + 2])
+            .range([height, 0]);
+
+        this.svg.attr('width', width).attr('height', height);
+
+        const bars = this.barContainer
+            .selectAll('.bar')
+            .data(DUMMY_DATA);
+
+        bars.enter()
+            .append('rect')
+            .classed('bar', true)
+            .attr('width', x.bandwidth())
+            .attr('height', dataPoint => height - y(dataPoint.value))
+            .attr('x', dataPoint => x(dataPoint.category))
+            .attr('y', dataPoint => y(dataPoint.value));
+    }
 }
